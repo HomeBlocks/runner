@@ -31,10 +31,10 @@ type MainInterface interface {
 func main() {
 	ctx := context.Background()
 	storage := NewStorage()
-	runner := New[TaskMethodInterface]().
-		Add(task1[TaskMethodInterface]()).
-		Add(task2[TaskMethodInterface]()).
-		Add(task3[TaskMethodInterface]()).
+	runner := New[MainInterface]().
+		Add(task1[MainInterface]()).
+		Add(task2[MainInterface]()).
+		Add(task3[MainInterface]()).
 		Run
 
 	err := runner(ctx, storage)
