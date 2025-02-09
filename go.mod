@@ -1,4 +1,4 @@
-module runner
+module github.com/HomeBlocks/runner
 
 go 1.23.6
 
