@@ -1,93 +1,70 @@
-package main
+package runner
 
 import (
 	"context"
+	"github.com/pkg/errors"
 )
 
-type DefaultStorage struct {
-	cancelled bool
-}
-
-func (d *DefaultStorage) Cancel() {
-	d.cancelled = true
-}
-
-func (d *DefaultStorage) IsCancelled() bool {
-	return d.cancelled
-}
-
-type Storage interface {
-	Cancel()
-	IsCancelled() bool
-}
-
-type Task[S Storage] func(context.Context, S) error
-
-type taskStruct[S Storage] struct {
-	errorHandler func(error) error
-	taskFn       Task[S]
-}
-
 type Runner[S Storage] struct {
-	tasks      []taskStruct[S]
-	taskRunner func(Task[S], context.Context, S) error
+	jobs       []jobInternal[S]
+	jobHandler func(Job[S], context.Context, S) error
 }
 
-func taskRunner[S Storage](task Task[S], ctx context.Context, storage S) error {
-	return task(ctx, storage)
-}
+func (r Runner[B]) internalRun(job jobInternal[B], ctx context.Context, buffer B) error {
+	var err error
 
-type Option[S Storage] func(runner *Runner[S])
-
-func New[S Storage](opts ...Option[S]) Runner[S] {
-	r := Runner[S]{
-		tasks:      make([]taskStruct[S], 0, 2),
-		taskRunner: taskRunner[S],
+	select {
+	case <-ctx.Done():
+		err = ctx.Err()
+	default:
+		err = r.jobHandler(job.job, ctx, buffer)
 	}
 
-	for _, opt := range opts {
-		opt(&r)
+	if job.errorHandler != nil {
+		err = job.errorHandler(err)
 	}
 
-	return r
+	return errors.WithMessagef(err, "run job fail")
 }
 
 func (r Runner[S]) Run(ctx context.Context, storage S) error {
-	return r.linerRun(ctx, storage)
-}
-
-func (r Runner[S]) Add(task Task[S]) Runner[S] {
-	tasks := taskStruct[S]{
-		taskFn: task,
-	}
-
-	return Runner[S]{
-		tasks:      append(r.tasks, tasks),
-		taskRunner: r.taskRunner,
-	}
-}
-
-func (r Runner[S]) linerRun(ctx context.Context, storage S) error {
-	for _, entity := range r.tasks {
+	for _, job := range r.jobs {
 		if storage.IsCancelled() {
 			break
 		}
 
-		var err error
-
-		select {
-		case <-ctx.Done():
-			err = ctx.Err()
-		default:
-			err = r.taskRunner(entity.taskFn, ctx, storage)
+		if err := r.internalRun(job, ctx, storage); err != nil {
+			return err
 		}
-
-		if entity.errorHandler != nil {
-			err = entity.errorHandler(err)
-		}
-
-		return err
 	}
 
 	return nil
+}
+
+func (r Runner[B]) Add(job Job[B], opts ...JobOption[B]) Runner[B] {
+	ji := jobInternal[B]{
+		job: job,
+	}
+
+	for _, opt := range opts {
+		opt(&ji)
+	}
+
+	return Runner[B]{
+		jobs:       append(r.jobs, ji),
+		jobHandler: r.jobHandler,
+	}
+}
+
+type Option[S Storage] func(*Runner[S])
+
+func New[S Storage](opts ...Option[S]) Runner[S] {
+	p := Runner[S]{
+		jobs:       make([]jobInternal[S], 0, 2),
+		jobHandler: defaultJobHandler[S],
+	}
+	for _, opt := range opts {
+		opt(&p)
+	}
+	return p
 }
