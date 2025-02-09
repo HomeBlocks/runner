@@ -1,18 +1,18 @@
 package runner
 
 type Storage interface {
-	Cancel()
-	IsCancelled() bool
+	Close()
+	IsClosed() bool
 }
 
 type DefaultStorage struct {
 	cancelled bool
 }
 
-func (d *DefaultStorage) Cancel() {
+func (d *DefaultStorage) Close() {
 	d.cancelled = true
 }
 
-func (d *DefaultStorage) IsCancelled() bool {
+func (d *DefaultStorage) IsClosed() bool {
 	return d.cancelled
 }

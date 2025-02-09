@@ -10,7 +10,7 @@ type Runner[S Storage] struct {
 	jobHandler func(Job[S], context.Context, S) error
 }
 
-func (r Runner[B]) internalRun(job jobInternal[B], ctx context.Context, buffer B) error {
+func (r Runner[B]) internalRun(ctx context.Context, job jobInternal[B], buffer B) error {
 	var err error
 
 	select {
@@ -29,11 +29,11 @@ func (r Runner[B]) internalRun(job jobInternal[B], ctx context.Context, buffer B
 
 func (r Runner[S]) Run(ctx context.Context, storage S) error {
 	for _, job := range r.jobs {
-		if storage.IsCancelled() {
+		if storage.IsClosed() {
 			break
 		}
 
-		if err := r.internalRun(job, ctx, storage); err != nil {
+		if err := r.internalRun(ctx, job, storage); err != nil {
 			return err
 		}
 	}
@@ -41,13 +41,9 @@ func (r Runner[S]) Run(ctx context.Context, storage S) error {
 	return nil
 }
 
-func (r Runner[B]) Add(job Job[B], opts ...JobOption[B]) Runner[B] {
+func (r Runner[B]) Add(job Job[B]) Runner[B] {
 	ji := jobInternal[B]{
 		job: job,
-	}
-
-	for _, opt := range opts {
-		opt(&ji)
 	}
 
 	return Runner[B]{
@@ -56,15 +52,11 @@ func (r Runner[B]) Add(job Job[B], opts ...JobOption[B]) Runner[B] {
 	}
 }
 
-type Option[S Storage] func(*Runner[S])
-
-func New[S Storage](opts ...Option[S]) Runner[S] {
-	p := Runner[S]{
-		jobs:       make([]jobInternal[S], 0, 2),
+func New[S Storage]() Runner[S] {
+	r := Runner[S]{
+		jobs:       make([]jobInternal[S], 0, 5),
 		jobHandler: defaultJobHandler[S],
 	}
-	for _, opt := range opts {
-		opt(&p)
-	}
-	return p
+
+	return r
 }
