@@ -13,8 +13,3 @@ type jobInternal[S Storage] struct {
 	job          Job[S]
 	errorHandler func(error) error
 }
-
-// defaultJobHandler executes the job and returns any errors encountered.
-func defaultJobHandler[S Storage](ctx context.Context, job Job[S], storage S) error {
-	return job(ctx, storage)
-}

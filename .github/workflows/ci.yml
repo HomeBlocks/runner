@@ -30,7 +30,7 @@ jobs:
           go clean -modcache
           go mod tidy
       - name: Run GolangCI-Lint
-        run: golangci-lint run --config .golang-ci.yml ./...
+        run: golangci-lint run --config .golang-ci.yml ./... --buildvcs=false
 
   tests:
     name: Run Tests

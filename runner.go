@@ -9,8 +9,7 @@ import (
 const defaultJobCount = 5
 
 type Runner[S Storage] struct {
-	jobs       []jobInternal[S]
-	jobHandler func(context.Context, Job[S], S) error
+	jobs []jobInternal[S]
 }
 
 // internalRun executes a job and handles its error using the job's custom error handler.
@@ -19,7 +18,7 @@ func (r *Runner[S]) internalRun(ctx context.Context, job jobInternal[S], storage
 	case <-ctx.Done():
 		return errors.Wrap(ctx.Err(), "context canceled")
 	default:
-		err := r.jobHandler(ctx, job.job, storage)
+		err := job.job(ctx, storage)
 		if job.errorHandler != nil {
 			err = job.errorHandler(err)
 		}
@@ -54,7 +53,6 @@ func (r *Runner[S]) Add(job Job[S]) *Runner[S] {
 // New creates a new Runner with the default handler and an empty list of jobs.
 func New[S Storage]() *Runner[S] {
 	return &Runner[S]{
-		jobs:       make([]jobInternal[S], 0, defaultJobCount),
-		jobHandler: defaultJobHandler[S],
+		jobs: make([]jobInternal[S], 0, defaultJobCount),
 	}
 }
