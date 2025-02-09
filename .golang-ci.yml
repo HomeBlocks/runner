@@ -17,6 +17,7 @@ linters:
     - exportloopref
     - depguard
     - forbidigo
+    - buildvc
 
 linters-settings:
   revive:
