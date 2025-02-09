@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"runner"
-	"runner/example/jobs"
+	"runner/_example/jobs"
 )
 
 type WorkStorage interface {
