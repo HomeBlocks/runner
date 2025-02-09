@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+
 	"runner"
 	"runner/example/jobs"
 )
@@ -16,8 +17,9 @@ func Works[S WorkStorage]() func(context.Context, S) error {
 		Add(jobs.IncCounter[S]()).
 		Add(jobs.IncCounter[S]()).
 		Add(jobs.IncCounter[S]()).
-		Add(func(ctx context.Context, s S) error {
-			s.Close()
+		Add(func(_ context.Context, storage S) error {
+			storage.Close()
+
 			return nil
 		}).
 		Add(jobs.IncCounter[S]()).

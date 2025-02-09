@@ -15,6 +15,6 @@ type jobInternal[S Storage] struct {
 }
 
 // defaultJobHandler executes the job and returns any errors encountered.
-func defaultJobHandler[S Storage](job Job[S], ctx context.Context, storage S) error {
+func defaultJobHandler[S Storage](ctx context.Context, job Job[S], storage S) error {
 	return job(ctx, storage)
 }
